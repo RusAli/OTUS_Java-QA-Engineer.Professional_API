@@ -14,7 +14,7 @@ public class UserDao {
             .firstName(faker.name().firstName())
             .lastName(faker.name().lastName())
             .email(faker.bothify("????##@gmail.com"))
-            .password(faker.lorem().characters())
+            .password(faker.number().digits(5))
             .phone(faker.phoneNumber().cellPhone())
             .userStatus(faker.number().numberBetween(1, 5))
             .build();

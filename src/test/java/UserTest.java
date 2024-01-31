@@ -4,33 +4,60 @@ import dto.EntityDto;
 import dto.UserDto;
 import extentions.Extention;
 import jdk.jfr.Description;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import routes.UserRequest;
+import steps.UserSteps;
 
 @ExtendWith(Extention.class)
-public class UserTest {
-
-  private UserRequest userRequest;
+public class UserTest extends UserSteps {
   private CustomAssert customAssert;
+  private UserDto userDto;
+
 
   @BeforeEach
   public void setUp() {
-    userRequest = new UserRequest();
+
     customAssert = new CustomAssert();
+
+    userDto = UserDao.createRandomUser();
   }
 
   @Test
   @Description("Проверка создания пользователя")
   public void shouldCreateUser() {
 
-    UserDto userDto = UserDao.createRandomUser();
-    EntityDto entityDto = userRequest.createUser(userDto)
-            .then().statusCode(HttpStatus.SC_OK)
-            .extract().as(EntityDto.class);
+    EntityDto entityDto = createUserWithDto(userDto);
+    customAssert.checkUserAssert(entityDto, 200, "unknown");
 
-    customAssert.checkCreateUserAssert(entityDto);
+    UserDto createdUserDto = getUserDtoByName(userDto.getUsername());
+    customAssert.checkUserInfo(userDto, createdUserDto);
+  }
+
+  @Test
+  @Description("Получить информацию о несуществующем пользователе")
+  public void shouldNotReturnUserInfo() {
+
+    EntityDto entityDto = getUserEntityByName("invalidName");
+    customAssert.checkUserAssert(entityDto, 1, "error", "User not found");
+  }
+
+  @Test
+  @Description("Логин пользователя")
+  public void shouldLoginWithCreatedUser() {
+
+    UserDto userDto = UserDao.createRandomUser();
+    EntityDto entityDto = createUserWithDto(userDto);
+    EntityDto loginPayload = loginUser(userDto.getUsername(), userDto.getPassword());
+
+    customAssert.checkUserAssert(loginPayload, 200, "unknown", "logged in user session:");
+  }
+
+  @Test
+  @Description("Выход пользователя")
+  public void shouldLogOutCurrentUser() {
+
+    EntityDto logOutPayload = loginOut();
+    customAssert.checkUserAssert(logOutPayload, 200, "unknown", "ok");
   }
 }
